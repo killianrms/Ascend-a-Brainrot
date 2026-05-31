@@ -1,5 +1,5 @@
 --!strict
-local UIController = require(script.UIController)
 local RollFX = require(script.RollFX)
-UIController.Start()
+local UIController = require(script.UIController)
 RollFX.Start()
+UIController.Start()

@@ -46,6 +46,10 @@ function EconomyService.Place(player: Player, uid: string): boolean
 	if table.find(data.Placed, uid) then
 		return false
 	end
+	-- enforce plot capacity
+	if #data.Placed >= data.MaxPlaced then
+		return false
+	end
 	table.insert(data.Placed, uid)
 	return true
 end

@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local ItemConfig = require(ReplicatedStorage.Modules.ItemConfig)
+local RollFX = require(script.Parent.RollFX)
 
 local player = Players.LocalPlayer
 local network = ReplicatedStorage:WaitForChild("Network")
@@ -73,9 +74,21 @@ local function makeUI()
 	inv.Visible = false
 	inv.Parent = gui
 	local grid = Instance.new("UIGridLayout")
-	grid.CellSize = UDim2.fromScale(0.22, 0.28)
+	grid.CellSize = UDim2.fromScale(0.3, 0.22)
 	grid.CellPadding = UDim2.fromScale(0.02, 0.02)
 	grid.Parent = inv
+
+	-- Transient notification (center, above roll button)
+	local notif = Instance.new("TextLabel")
+	notif.Name = "Notif"
+	notif.Size = UDim2.fromScale(0.5, 0.06)
+	notif.Position = UDim2.fromScale(0.25, 0.74)
+	notif.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+	notif.TextColor3 = Color3.fromRGB(255, 255, 255)
+	notif.TextScaled = true
+	notif.Font = Enum.Font.GothamBold
+	notif.Visible = false
+	notif.Parent = gui
 
 	-- Offline banner
 	local banner = Instance.new("TextButton")
@@ -96,14 +109,33 @@ local function makeUI()
 		invBtn = invBtn,
 		inv = inv,
 		banner = banner,
+		notif = notif,
 	}
 end
 
 function UIController.Start()
 	local ui = makeUI()
 
-	-- Roll: click or keyboard (R / Space on PC)
+	-- transient notification helper
+	local notifToken = 0
+	local function notify(text: string)
+		ui.notif.Text = text
+		ui.notif.Visible = true
+		notifToken += 1
+		local myToken = notifToken
+		task.delay(2.5, function()
+			if myToken == notifToken then
+				ui.notif.Visible = false
+			end
+		end)
+	end
+
+	-- Roll: click or keyboard (R / Space on PC). Blocked while an animation plays.
 	local function doRoll()
+		if RollFX.IsRolling() then
+			return
+		end
+		RollFX.RollStarted()
 		events.RequestRoll:FireServer()
 	end
 	ui.roll.Activated:Connect(doRoll)
@@ -134,8 +166,16 @@ function UIController.Start()
 			local mut = if item.Mutation then `[{item.Mutation}] ` else ""
 			cell.Text = `{mut}{cfg.Name}\n{if placed then "PLACED (tap=remove)" else "tap=place | right=sell"}`
 			cell.Parent = ui.inv
-			-- tap: toggle place
+			-- tap: toggle place (client-side cap feedback; server is authoritative)
 			cell.Activated:Connect(function()
+				if not placed then
+					local placedCount = #data.Placed
+					local maxPlaced = data.MaxPlaced or 5
+					if placedCount >= maxPlaced then
+						notify(`Plot plein ({placedCount}/{maxPlaced}) - retire ou vends`)
+						return
+					end
+				end
 				events.PlaceItem:FireServer({ uid = uid, place = not placed })
 			end)
 			-- right-click (PC): sell when not placed

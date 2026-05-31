@@ -7,14 +7,18 @@ local RunService = game:GetService("RunService")
 local ProfileStore = require(ServerScriptService.ServerPackages.ProfileStore)
 local FormulaModule = require(ReplicatedStorage.Modules.FormulaModule)
 
+local STARTER_CASH = 100 -- one-time welcome bonus so new players can start rolling
+
 local PROFILE_TEMPLATE = {
 	Leaderstats = { Cash = 0, Gems = 0, Rebirths = 0 },
 	Inventory = {},
 	Placed = {},
-	MaxSlots = 12,
+	MaxSlots = 12, -- inventory capacity
+	MaxPlaced = 5, -- plot capacity (how many creatures can generate income at once)
 	Upgrades = { LuckLevel = 0, SpeedLevel = 0, OfflineLevel = 0 },
 	Timestamps = { LastDisconnect = 0, DailyStreak = 0, LastDailyClaim = 0 },
 	Stats = { TotalRolls = 0, BestRarity = 0 },
+	StarterGranted = false,
 }
 
 local STORE_NAME = if RunService:IsStudio() then "AscendDev_v1" else "AscendProd_v1"
@@ -46,6 +50,11 @@ end
 
 local function onProfileLoaded(player: Player, profile)
 	local data = profile.Data
+	-- One-time welcome bonus
+	if not data.StarterGranted then
+		data.StarterGranted = true
+		data.Leaderstats.Cash += STARTER_CASH
+	end
 	-- Offline earnings
 	local last = data.Timestamps.LastDisconnect
 	if last > 0 then
