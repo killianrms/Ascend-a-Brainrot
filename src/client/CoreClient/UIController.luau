@@ -4,7 +4,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local ItemConfig = require(ReplicatedStorage.Modules.ItemConfig)
+local FormulaModule = require(ReplicatedStorage.Modules.FormulaModule)
 local RollFX = require(script.Parent.RollFX)
+
+local BASE_MAX_PLACED = 5
+local BASE_MAX_SLOTS = 12
 
 local player = Players.LocalPlayer
 local network = ReplicatedStorage:WaitForChild("Network")
@@ -78,6 +82,50 @@ local function makeUI()
 	grid.CellPadding = UDim2.fromScale(0.02, 0.02)
 	grid.Parent = inv
 
+	-- Shop toggle button
+	local shopBtn = Instance.new("TextButton")
+	shopBtn.Name = "ShopBtn"
+	shopBtn.Size = UDim2.fromScale(0.18, 0.06)
+	shopBtn.Position = UDim2.fromScale(0.61, 0.02)
+	shopBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+	shopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	shopBtn.TextScaled = true
+	shopBtn.Font = Enum.Font.GothamBold
+	shopBtn.Text = "Shop"
+	shopBtn.Parent = gui
+
+	-- Shop panel with one buy button per upgrade
+	local shop = Instance.new("Frame")
+	shop.Name = "Shop"
+	shop.Size = UDim2.fromScale(0.4, 0.5)
+	shop.Position = UDim2.fromScale(0.3, 0.2)
+	shop.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+	shop.BackgroundTransparency = 0.1
+	shop.Visible = false
+	shop.Parent = gui
+	local shopList = Instance.new("UIListLayout")
+	shopList.Padding = UDim.new(0.03, 0)
+	shopList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	shopList.VerticalAlignment = Enum.VerticalAlignment.Center
+	shopList.Parent = shop
+
+	local shopButtons: { [string]: TextButton } = {}
+	for _, kind in { "plot", "inv", "luck", "speed" } do
+		local b = Instance.new("TextButton")
+		b.Name = kind
+		b.Size = UDim2.fromScale(0.9, 0.18)
+		b.BackgroundColor3 = Color3.fromRGB(120, 80, 255)
+		b.TextColor3 = Color3.fromRGB(255, 255, 255)
+		b.TextScaled = true
+		b.Font = Enum.Font.GothamBold
+		b.Text = kind
+		b.Parent = shop
+		local c = Instance.new("UICorner")
+		c.CornerRadius = UDim.new(0.2, 0)
+		c.Parent = b
+		shopButtons[kind] = b
+	end
+
 	-- Transient notification (center, above roll button)
 	local notif = Instance.new("TextLabel")
 	notif.Name = "Notif"
@@ -110,6 +158,9 @@ local function makeUI()
 		inv = inv,
 		banner = banner,
 		notif = notif,
+		shopBtn = shopBtn,
+		shop = shop,
+		shopButtons = shopButtons,
 	}
 end
 
@@ -187,6 +238,31 @@ function UIController.Start()
 		end
 	end
 
+	-- Shop: label each upgrade button with its current value and next cost.
+	local function renderShop(data)
+		local plotBought = data.MaxPlaced - BASE_MAX_PLACED
+		local invBought = data.MaxSlots - BASE_MAX_SLOTS
+		ui.shopButtons.plot.Text = `+1 Plot slot ({data.MaxPlaced}) - ${FormulaModule.plotSlotCost(plotBought)}`
+		ui.shopButtons.inv.Text = `+1 Inventaire ({data.MaxSlots}) - ${FormulaModule.slotCost(invBought)}`
+		ui.shopButtons.luck.Text =
+			`Chance Lv.{data.Upgrades.LuckLevel} (+15%/lv) - ${FormulaModule.luckCost(data.Upgrades.LuckLevel)}`
+		ui.shopButtons.speed.Text =
+			`Vitesse Lv.{data.Upgrades.SpeedLevel} (-10%/lv) - ${FormulaModule.speedCost(data.Upgrades.SpeedLevel)}`
+	end
+
+	for kind, btn in ui.shopButtons do
+		btn.Activated:Connect(function()
+			events.BuyUpgrade:FireServer(kind)
+		end)
+	end
+
+	ui.shopBtn.Activated:Connect(function()
+		ui.shop.Visible = not ui.shop.Visible
+		if ui.shop.Visible and latestData then
+			renderShop(latestData)
+		end
+	end)
+
 	ui.invBtn.Activated:Connect(function()
 		ui.inv.Visible = not ui.inv.Visible
 		if ui.inv.Visible and latestData then
@@ -200,6 +276,9 @@ function UIController.Start()
 		ui.cash.Text = `${math.floor(data.Leaderstats.Cash)}`
 		if ui.inv.Visible then
 			renderInventory(data)
+		end
+		if ui.shop.Visible then
+			renderShop(data)
 		end
 	end)
 

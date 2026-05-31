@@ -17,4 +17,20 @@ return function(t)
 
 	-- Rebirth cost (used in later layer): 10000 * 2.5^R
 	t.eq(F.rebirthCost(1), 25000, "rebirth 1")
+
+	-- Upgrade costs
+	t.eq(F.plotSlotCost(0), 1000, "plot slot 0 = 1000")
+	t.approx(F.plotSlotCost(1), 1700, 0.5, "plot slot 1 = 1700")
+	t.eq(F.luckCost(0), 750, "luck 0 = 750")
+	t.eq(F.luckCost(1), 1500, "luck 1 = 1500")
+	t.eq(F.speedCost(0), 750, "speed 0 = 750")
+
+	-- Luck multiplier: +15% per level
+	t.approx(F.luckMultiplier(0), 1.0, 0.001, "luck mult lvl0")
+	t.approx(F.luckMultiplier(2), 1.3, 0.001, "luck mult lvl2")
+
+	-- Roll cooldown shrinks with speed, floored at 0.1
+	t.approx(F.rollCooldown(0.4, 0), 0.4, 0.001, "cooldown base")
+	t.approx(F.rollCooldown(0.4, 1), 0.36, 0.001, "cooldown -10%")
+	t.eq(F.rollCooldown(0.4, 100), 0.1, "cooldown floor")
 end

@@ -33,6 +33,7 @@ end
 local RequestRoll = makeEvent("RequestRoll")
 local SellItem = makeEvent("SellItem")
 local PlaceItem = makeEvent("PlaceItem") -- arg: { uid = string, place = boolean }
+local BuyUpgrade = makeEvent("BuyUpgrade") -- arg: kind ("plot"|"inv"|"luck"|"speed")
 local ClaimOffline = makeEvent("ClaimOffline")
 local BroadcastRareRoll = makeEvent("BroadcastRareRoll")
 local ProfileUpdated = makeEvent("ProfileUpdated")
@@ -90,6 +91,14 @@ PlaceItem.OnServerEvent:Connect(function(player, payload)
 		else
 			EconomyService.Unplace(player, payload.uid)
 		end
+	end
+	pushProfile(player)
+end)
+
+-- Buy an upgrade
+BuyUpgrade.OnServerEvent:Connect(function(player, kind)
+	if typeof(kind) == "string" then
+		EconomyService.BuyUpgrade(player, kind)
 	end
 	pushProfile(player)
 end)
