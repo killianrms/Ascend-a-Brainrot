@@ -55,6 +55,62 @@ local function makeUI()
 	gems.Text = "0 Gems"
 	gems.Parent = gui
 
+	-- Income multiplier label (under gems)
+	local income = Instance.new("TextLabel")
+	income.Name = "Income"
+	income.Size = UDim2.fromScale(0.25, 0.045)
+	income.Position = UDim2.fromScale(0.02, 0.145)
+	income.BackgroundTransparency = 1
+	income.TextColor3 = Color3.fromRGB(120, 255, 150)
+	income.TextScaled = true
+	income.Font = Enum.Font.GothamBold
+	income.TextXAlignment = Enum.TextXAlignment.Left
+	income.Text = "Revenu x1"
+	income.Parent = gui
+
+	-- Rebirth confirmation dialog (hidden)
+	local confirm = Instance.new("Frame")
+	confirm.Name = "RebirthConfirm"
+	confirm.Size = UDim2.fromScale(0.5, 0.32)
+	confirm.Position = UDim2.fromScale(0.25, 0.34)
+	confirm.BackgroundColor3 = Color3.fromRGB(25, 20, 15)
+	confirm.Visible = false
+	confirm.ZIndex = 5
+	confirm.Parent = gui
+	local confirmText = Instance.new("TextLabel")
+	confirmText.Name = "Text"
+	confirmText.Size = UDim2.fromScale(0.92, 0.55)
+	confirmText.Position = UDim2.fromScale(0.04, 0.05)
+	confirmText.BackgroundTransparency = 1
+	confirmText.TextColor3 = Color3.fromRGB(255, 255, 255)
+	confirmText.TextScaled = true
+	confirmText.Font = Enum.Font.GothamBold
+	confirmText.TextWrapped = true
+	confirmText.ZIndex = 6
+	confirmText.Parent = confirm
+	local yesBtn = Instance.new("TextButton")
+	yesBtn.Name = "Yes"
+	yesBtn.Size = UDim2.fromScale(0.44, 0.3)
+	yesBtn.Position = UDim2.fromScale(0.04, 0.65)
+	yesBtn.BackgroundColor3 = Color3.fromRGB(40, 170, 80)
+	yesBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	yesBtn.TextScaled = true
+	yesBtn.Font = Enum.Font.GothamBlack
+	yesBtn.Text = "REBIRTH !"
+	yesBtn.ZIndex = 6
+	yesBtn.Parent = confirm
+	local noBtn = Instance.new("TextButton")
+	noBtn.Name = "No"
+	noBtn.Size = UDim2.fromScale(0.44, 0.3)
+	noBtn.Position = UDim2.fromScale(0.52, 0.65)
+	noBtn.BackgroundColor3 = Color3.fromRGB(150, 60, 60)
+	noBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	noBtn.TextScaled = true
+	noBtn.Font = Enum.Font.GothamBlack
+	noBtn.Text = "Annuler"
+	noBtn.ZIndex = 6
+	noBtn.Parent = confirm
+
 	-- Rebirth button (bottom-left)
 	local rebirth = Instance.new("TextButton")
 	rebirth.Name = "Rebirth"
@@ -191,6 +247,11 @@ local function makeUI()
 		shopButtons = shopButtons,
 		gems = gems,
 		rebirth = rebirth,
+		income = income,
+		confirm = confirm,
+		confirmText = confirmText,
+		confirmYes = yesBtn,
+		confirmNo = noBtn,
 	}
 end
 
@@ -224,7 +285,8 @@ function UIController.Start()
 		if gp then
 			return
 		end
-		if input.KeyCode == Enum.KeyCode.R or input.KeyCode == Enum.KeyCode.Space then
+		-- R to roll (Space is reserved for jumping)
+		if input.KeyCode == Enum.KeyCode.R then
 			doRoll()
 		end
 	end)
@@ -293,21 +355,37 @@ function UIController.Start()
 		end
 	end)
 
+	-- Rebirth: open a confirmation that spells out the trade-off.
 	ui.rebirth.Activated:Connect(function()
 		if not latestData then
 			return
 		end
-		local cost = FormulaModule.rebirthCost(latestData.Leaderstats.Rebirths + 1)
+		local nextR = latestData.Leaderstats.Rebirths + 1
+		local cost = FormulaModule.rebirthCost(nextR)
 		if latestData.Leaderstats.Cash < cost then
 			notify(`Rebirth: il te faut ${cost}`)
 			return
 		end
-		events.RebirthRequest:FireServer()
+		local gemsGain = FormulaModule.gemsForRebirth(nextR)
+		local newMult = FormulaModule.incomeMultiplier(nextR)
+		ui.confirmText.Text = `REBIRTH {nextR} ?\n\nTu perds ton Cash ($ {math.floor(latestData.Leaderstats.Cash)})`
+			.. `\nMais tu gagnes : +{gemsGain} Gems et revenu PERMANENT x{newMult}`
+			.. `\n(tes créatures et améliorations sont conservées)`
+		ui.confirm.Visible = true
 	end)
 
-	-- HUD bits that depend on profile values (gems + rebirth button label).
+	ui.confirmYes.Activated:Connect(function()
+		ui.confirm.Visible = false
+		events.RebirthRequest:FireServer()
+	end)
+	ui.confirmNo.Activated:Connect(function()
+		ui.confirm.Visible = false
+	end)
+
+	-- HUD bits that depend on profile values (gems + income mult + rebirth button label).
 	local function renderHud(data)
 		ui.gems.Text = `{data.Leaderstats.Gems} Gems`
+		ui.income.Text = `Revenu x{FormulaModule.incomeMultiplier(data.Leaderstats.Rebirths)}`
 		local cost = FormulaModule.rebirthCost(data.Leaderstats.Rebirths + 1)
 		local can = data.Leaderstats.Cash >= cost
 		ui.rebirth.Text = `REBIRTH {data.Leaderstats.Rebirths} -> ${cost}`
