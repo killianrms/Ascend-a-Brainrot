@@ -1,0 +1,26 @@
+# Docs / notes — kept locally, never pushed
+*.md
+*.pdf
+docs/
+
+# Local Claude Code settings
+.claude/
+
+# Rojo / Roblox
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+*.rbxlx.lock
+
+# Wally (installed packages ignored; wally.lock IS committed for reproducible installs)
+/Packages
+/ServerPackages
+/DevPackages
+
+# Lune
+/.lune
+
+# OS
+Desktop.ini
+Thumbs.db
+.DS_Store
