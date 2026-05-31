@@ -33,4 +33,10 @@ return function(t)
 	t.approx(F.rollCooldown(0.4, 0), 0.4, 0.001, "cooldown base")
 	t.approx(F.rollCooldown(0.4, 1), 0.36, 0.001, "cooldown -10%")
 	t.eq(F.rollCooldown(0.4, 100), 0.1, "cooldown floor")
+
+	-- Rebirth income multiplier and gem reward
+	t.approx(F.incomeMultiplier(0), 1.0, 0.001, "income mult r0")
+	t.approx(F.incomeMultiplier(2), 2.0, 0.001, "income mult r2")
+	t.eq(F.gemsForRebirth(1), 10, "gems r1")
+	t.eq(F.gemsForRebirth(3), 30, "gems r3")
 end

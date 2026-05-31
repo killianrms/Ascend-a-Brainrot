@@ -114,4 +114,27 @@ function EconomyService.BuyUpgrade(player: Player, kind: string): boolean
 	return false
 end
 
+-- Cash required to perform the player's next rebirth.
+function EconomyService.RebirthCost(data): number
+	return FormulaModule.rebirthCost(data.Leaderstats.Rebirths + 1)
+end
+
+-- Rebirth: spend accumulated Cash to gain a permanent income multiplier + Gems.
+-- Keeps the collection and cash-bought upgrades; only Cash is reset.
+function EconomyService.Rebirth(player: Player): boolean
+	local profile = DataManager.Get(player)
+	if not profile then
+		return false
+	end
+	local data = profile.Data
+	local cost = EconomyService.RebirthCost(data)
+	if data.Leaderstats.Cash < cost then
+		return false
+	end
+	data.Leaderstats.Rebirths += 1
+	data.Leaderstats.Gems += FormulaModule.gemsForRebirth(data.Leaderstats.Rebirths)
+	data.Leaderstats.Cash = 0
+	return true
+end
+
 return EconomyService

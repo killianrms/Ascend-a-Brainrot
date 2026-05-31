@@ -42,6 +42,34 @@ local function makeUI()
 	cash.Text = "$0"
 	cash.Parent = gui
 
+	-- Gems label (under cash)
+	local gems = Instance.new("TextLabel")
+	gems.Name = "Gems"
+	gems.Size = UDim2.fromScale(0.25, 0.05)
+	gems.Position = UDim2.fromScale(0.02, 0.09)
+	gems.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+	gems.BackgroundTransparency = 0.2
+	gems.TextColor3 = Color3.fromRGB(150, 230, 255)
+	gems.TextScaled = true
+	gems.Font = Enum.Font.GothamBold
+	gems.Text = "0 Gems"
+	gems.Parent = gui
+
+	-- Rebirth button (bottom-left)
+	local rebirth = Instance.new("TextButton")
+	rebirth.Name = "Rebirth"
+	rebirth.Size = UDim2.fromScale(0.22, 0.1)
+	rebirth.Position = UDim2.fromScale(0.02, 0.85)
+	rebirth.BackgroundColor3 = Color3.fromRGB(200, 120, 40)
+	rebirth.TextColor3 = Color3.fromRGB(255, 255, 255)
+	rebirth.TextScaled = true
+	rebirth.Font = Enum.Font.GothamBlack
+	rebirth.Text = "REBIRTH"
+	rebirth.Parent = gui
+	local rbCorner = Instance.new("UICorner")
+	rbCorner.CornerRadius = UDim.new(0.2, 0)
+	rbCorner.Parent = rebirth
+
 	-- Roll button (bottom-center, big for touch)
 	local roll = Instance.new("TextButton")
 	roll.Name = "Roll"
@@ -161,6 +189,8 @@ local function makeUI()
 		shopBtn = shopBtn,
 		shop = shop,
 		shopButtons = shopButtons,
+		gems = gems,
+		rebirth = rebirth,
 	}
 end
 
@@ -263,6 +293,27 @@ function UIController.Start()
 		end
 	end)
 
+	ui.rebirth.Activated:Connect(function()
+		if not latestData then
+			return
+		end
+		local cost = FormulaModule.rebirthCost(latestData.Leaderstats.Rebirths + 1)
+		if latestData.Leaderstats.Cash < cost then
+			notify(`Rebirth: il te faut ${cost}`)
+			return
+		end
+		events.RebirthRequest:FireServer()
+	end)
+
+	-- HUD bits that depend on profile values (gems + rebirth button label).
+	local function renderHud(data)
+		ui.gems.Text = `{data.Leaderstats.Gems} Gems`
+		local cost = FormulaModule.rebirthCost(data.Leaderstats.Rebirths + 1)
+		local can = data.Leaderstats.Cash >= cost
+		ui.rebirth.Text = `REBIRTH {data.Leaderstats.Rebirths} -> ${cost}`
+		ui.rebirth.BackgroundColor3 = if can then Color3.fromRGB(230, 150, 40) else Color3.fromRGB(90, 70, 50)
+	end
+
 	ui.invBtn.Activated:Connect(function()
 		ui.inv.Visible = not ui.inv.Visible
 		if ui.inv.Visible and latestData then
@@ -274,6 +325,7 @@ function UIController.Start()
 	events.ProfileUpdated.OnClientEvent:Connect(function(data)
 		latestData = data
 		ui.cash.Text = `${math.floor(data.Leaderstats.Cash)}`
+		renderHud(data)
 		if ui.inv.Visible then
 			renderInventory(data)
 		end
@@ -287,6 +339,7 @@ function UIController.Start()
 	if payload then
 		latestData = payload.data
 		ui.cash.Text = `${math.floor(payload.data.Leaderstats.Cash)}`
+		renderHud(payload.data)
 		if payload.offline and payload.offline > 0 then
 			ui.banner.Text = `Welcome back! +${payload.offline} earned offline.\n(tap to claim)`
 			ui.banner.Visible = true

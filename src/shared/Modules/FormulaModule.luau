@@ -48,4 +48,14 @@ function F.rollCooldown(baseCooldown: number, speedLevel: number): number
 	return math.max(0.1, baseCooldown * (1 - 0.1 * speedLevel))
 end
 
+-- Global passive-income multiplier from rebirths: +50% per rebirth (GDD AFK formula).
+function F.incomeMultiplier(rebirths: number): number
+	return 1 + 0.5 * rebirths
+end
+
+-- Gems granted when reaching rebirth number `r` (GDD: GemmesGagnees = R * 10).
+function F.gemsForRebirth(r: number): number
+	return r * 10
+end
+
 return F

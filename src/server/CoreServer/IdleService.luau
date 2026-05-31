@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ItemConfig = require(ReplicatedStorage.Modules.ItemConfig)
 local MutationConfig = require(ReplicatedStorage.Modules.MutationConfig)
+local FormulaModule = require(ReplicatedStorage.Modules.FormulaModule)
 local DataManager = require(script.Parent.DataManager)
 
 local IdleService = {}
@@ -26,6 +27,8 @@ function IdleService.RateOf(player: Player): number
 			rate += base * mult
 		end
 	end
+	-- global rebirth bonus
+	rate *= FormulaModule.incomeMultiplier(data.Leaderstats.Rebirths)
 	return rate
 end
 
